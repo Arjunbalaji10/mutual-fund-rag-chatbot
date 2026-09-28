@@ -1,0 +1,114 @@
+# Mutual Fund FAQs — Facts-Only Q&A
+
+## Goal
+
+Build a small RAG-based FAQ assistant that answers factual questions about mutual fund schemes.
+
+The assistant should answer questions such as:
+- What is the expense ratio?
+- What is the exit load?
+- What is the minimum SIP amount?
+- What is the ELSS lock-in period?
+- What is the riskometer?
+- What is the benchmark?
+- How can I download my statement or tax-related document?
+
+Every answer must include one clear source link.
+
+The assistant must provide facts only and must not provide investment advice.
+
+## Scope
+
+Use one AMC: HDFC.
+
+Use 3–5 HDFC mutual fund schemes.
+
+The initial scheme list is:
+
+1. HDFC Large Cap Fund
+2. HDFC Equity Fund / Flexi Cap
+3. HDFC ELSS Tax Saver Fund
+4. HDFC Small Cap Fund
+5. HDFC Balanced Advantage Fund
+
+## Sources
+
+Use only public sources.
+
+The sources should come from official/public sources such as:
+- AMC
+- SEBI
+- AMFI
+
+Do not use third-party blogs as sources.
+
+## Chatbot behaviour
+
+The chatbot should:
+
+1. Answer factual mutual fund questions using the provided source data.
+2. Include one source link with every answer.
+3. Keep answers to 3 sentences or fewer.
+4. Show when the information was last updated from the sources.
+5. Refuse opinionated or portfolio-related questions such as:
+   - Should I buy this fund?
+   - Should I sell this fund?
+   - Which fund is better for me?
+6. For questions that cannot be answered from the available source data, say that the information is not available in the provided sources.
+
+## Safety and privacy constraints
+
+Do not accept or store:
+- PAN
+- Aadhaar
+- Bank/account numbers
+- OTPs
+- Email addresses
+- Phone numbers
+
+Do not provide investment advice.
+
+Do not calculate or compare investment returns.
+
+## User interface
+
+The chatbot should have:
+- A welcome message
+- Three example questions
+- A clear note saying:
+
+"Facts-only. No investment advice."
+
+## RAG requirement
+
+The chatbot must use a Retrieval-Augmented Generation architecture.
+
+Data ingestion:
+
+Load → Chunk → Embed → Store in Vector DB
+
+Data retrieval:
+
+Question → Embed → Retrieve relevant chunks → LLM → Answer
+
+## Technical requirements
+
+Embedding model:
+
+sentence-transformers/all-MiniLM-L6-v2
+
+The same embedding model must be used for both:
+- Source chunks
+- User questions
+
+Vector database:
+
+ChromaDB
+
+The ChromaDB database must persist to disk so that ingestion does not need to run every time the application starts.
+
+LLM:
+
+Groq
+
+The Groq API key must be stored in a .env file and must never be committed to GitHub.
