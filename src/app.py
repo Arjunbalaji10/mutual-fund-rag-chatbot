@@ -20,24 +20,41 @@ chunks, retriever, groq_client = load_rag_resources()
 
 st.title("📊 Mutual Fund FAQ Assistant")
 
-st.caption(
-    "Factual information about the HDFC mutual fund schemes "
+st.write(
+    "Ask factual questions about the HDFC mutual fund schemes "
     "covered by this knowledge base."
 )
 
+st.info("Facts-only. No investment advice.")
 
-# Initialize conversation history
+
+st.subheader("Example questions")
+
+example_questions = [
+    "What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+    "What is the minimum investment amount for HDFC Equity Fund Direct Growth?",
+    "What is the exit load of HDFC Large Cap Fund Direct Growth?",
+]
+
+for question in example_questions:
+    if st.button(question):
+        st.session_state.selected_question = question
+
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 
-# Clear chat button
+if "selected_question" not in st.session_state:
+    st.session_state.selected_question = None
+
+
 if st.button("Clear Chat"):
     st.session_state.messages = []
+    st.session_state.selected_question = None
     st.rerun()
 
 
-# Display previous messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -47,14 +64,17 @@ for message in st.session_state.messages:
                 st.write(message["source_url"])
 
 
-# Chat input
 question = st.chat_input(
     "Ask a factual mutual fund question..."
 )
 
 
+if st.session_state.selected_question:
+    question = st.session_state.selected_question
+    st.session_state.selected_question = None
+
+
 if question:
-    # Display user question
     with st.chat_message("user"):
         st.markdown(question)
 
@@ -65,7 +85,6 @@ if question:
         }
     )
 
-    # Get RAG answer
     result = answer_question(
         question,
         chunks,
@@ -73,7 +92,6 @@ if question:
         groq_client,
     )
 
-    # Display assistant answer
     with st.chat_message("assistant"):
         st.markdown(result["answer"])
 

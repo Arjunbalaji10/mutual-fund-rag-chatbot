@@ -15,7 +15,7 @@ This project provides a simple chatbot where users can ask factual questions abo
 The chatbot aims to:
 
 - Answer factual mutual fund questions.
-- Use a RAG pipeline.
+- Retrieve relevant information from the knowledge base.
 - Provide source links.
 - Reject investment advice requests.
 - Reject unrelated questions.
@@ -24,7 +24,7 @@ The chatbot aims to:
 
 ## Supported Mutual Funds
 
-The knowledge base currently covers:
+The current knowledge base covers:
 
 1. HDFC Large Cap Fund Direct Growth
 2. HDFC Equity Fund Direct Growth
@@ -35,85 +35,285 @@ The knowledge base currently covers:
 ## Key Features
 
 - Factual FAQ answers
-- RAG-based retrieval
+- Retrieval-based question answering
 - Source links
 - Investment advice guardrails
 - Off-topic question guardrails
 - Unsupported fund guardrails
 - Conversation history
 - Clear Chat button
+- Three example questions in the UI
+- Facts-only disclaimer
 
 ## RAG Architecture
 
-The system works as follows:
+### Data Ingestion Flow
 
+```text
 Source Pages
-↓
+    ↓
 Data Collection
-↓
+    ↓
 Text Chunking
-↓
-Embeddings
-↓
+    ↓
+Embedding
+    ↓
 ChromaDB
-↓
+```
+
+### Production Query Flow
+
+```text
 User Question
-↓
-Relevant Chunk Retrieval
-↓
+    ↓
+Guardrails
+    ↓
+BM25 Retrieval
+    ↓
+Top Relevant Chunks
+    ↓
 Groq LLM
-↓
-Answer + Source
+    ↓
+Answer + Source Link
+```
+
+The project contains an offline embedding and ChromaDB pipeline for the RAG indexing workflow.
+
+The deployed production application uses BM25 retrieval because it provides a lightweight retrieval layer suitable for the available Render runtime memory.
 
 ## Tech Stack
 
-- Python
-- Streamlit
-- ChromaDB
-- Sentence Transformers
-- Groq API
-- BeautifulSoup
-- Requests
-- python-dotenv
-
-Embedding model:
-
-all-MiniLM-L6-v2
-
-Vector database:
-
-ChromaDB
-
-LLM:
-
-openai/gpt-oss-20b using Groq API
+| Component | Technology |
+|---|---|
+| Language | Python |
+| UI | Streamlit |
+| LLM | Groq — `openai/gpt-oss-20b` |
+| Production Retrieval | BM25 — `rank-bm25` |
+| Vector Database | ChromaDB |
+| Embedding Model | `sentence-transformers/all-MiniLM-L6-v2` |
+| Data Collection | Requests + BeautifulSoup |
+| Environment Management | python-dotenv |
+| Deployment | Render |
+| Version Control | Git + GitHub |
 
 ## Project Structure
 
+```text
 mutual-fund-rag-chatbot/
-
-data/
-raw/
-
-docs/
-
-src/
-app.py
-collect_sources.py
-chunk_sources.py
-embed_store.py
-guardrails.py
-rag_pipeline.py
-
-.env.example
-.gitignore
-ProblemStatement.txt
-README.md
-requirements.txt
+│
+├── data/
+│   ├── raw/
+│   └── chunks/
+│
+├── docs/
+│   ├── sources.md
+│   ├── sample_qa.md
+│   └── disclaimer.md
+│
+├── src/
+│   ├── app.py
+│   ├── collect_sources.py
+│   ├── chunk_sources.py
+│   ├── embed_store.py
+│   ├── guardrails.py
+│   ├── rag_pipeline.py
+│   └── retriever.py
+│
+├── tests/
+│   └── evaluate.py
+│
+├── .env.example
+├── .gitignore
+├── ProblemStatement.txt
+├── README.md
+└── requirements.txt
+```
 
 ## Setup
 
 ### 1. Create a virtual environment
 
-```text
+```bash
 python -m venv .venv
+```
+
+### 2. Activate the virtual environment
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure environment variables
+
+Create a `.env` file:
+
+```text
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=openai/gpt-oss-20b
+```
+
+Never commit `.env` or expose the API key.
+
+### 5. Run the application
+
+```bash
+streamlit run src/app.py
+```
+
+The application will open in the browser.
+
+## Source List
+
+The chatbot currently uses five public scheme pages.
+
+The complete source list is available in:
+
+```text
+docs/sources.md
+```
+
+## Sample Q&A
+
+Sample factual questions, answers, and source links are available in:
+
+```text
+docs/sample_qa.md
+```
+
+## Guardrails
+
+The chatbot:
+
+- Answers factual questions about supported schemes.
+- Refuses investment advice and recommendations.
+- Refuses unrelated questions.
+- Refuses questions about unsupported funds.
+- Does not provide future return predictions.
+- Does not provide buy/sell recommendations.
+- Returns an "I don't know" response when the available sources do not contain enough information.
+
+## Disclaimer
+
+The application displays:
+
+> Facts-only. No investment advice.
+
+The complete disclaimer is available in:
+
+```text
+docs/disclaimer.md
+```
+
+## Evaluation
+
+The project includes an automated evaluation script:
+
+```bash
+python tests/evaluate.py
+```
+
+Current evaluation result:
+
+```text
+8/8 tests passed
+```
+
+The evaluation covers:
+
+- Factual retrieval
+- Expected factual values
+- Source URL validation
+- Investment-advice refusal
+- Unsupported-fund refusal
+
+## Deployment
+
+The application is deployed on Render.
+
+Production start command:
+
+```bash
+streamlit run src/app.py --server.port $PORT --server.address 0.0.0.0
+```
+
+The application automatically redeploys when changes are pushed to the GitHub repository.
+
+## Production Validation
+
+The deployed application has been manually tested for:
+
+- Expense ratio retrieval
+- Minimum investment retrieval
+- Exit load retrieval
+- Source link generation
+- Investment advice refusal
+- Unsupported fund refusal
+
+### Example
+
+Question:
+
+```text
+What is the expense ratio of HDFC Large Cap Fund Direct Growth?
+```
+
+Answer:
+
+```text
+The expense ratio for the HDFC Large Cap Fund Direct Growth is 1.03%.
+```
+
+The response includes the relevant source link.
+
+## Limitations
+
+- The chatbot only answers questions covered by its current knowledge base.
+- The current corpus contains five scheme sources.
+- It does not provide investment recommendations.
+- It does not predict future returns.
+- It does not compare investment performance.
+- It does not accept or store personal financial information.
+- Source information is limited to the available source pages.
+- The production deployment currently uses BM25 retrieval rather than running the embedding and ChromaDB pipeline at runtime.
+
+## Security
+
+- API keys are stored in environment variables.
+- `.env` is excluded from Git.
+- `.env.example` contains placeholders only.
+- No PAN, Aadhaar, OTP, phone number, email, or account information is collected or stored.
+
+## Project Status
+
+```text
+Prototype                    Complete
+Data ingestion               Complete
+Chunking                     Complete
+Retrieval                    Complete
+Groq integration             Complete
+Guardrails                   Complete
+Streamlit UI                 Complete
+Source citations             Complete
+Automated evaluation         8/8 passed
+Render deployment            Complete
+Documentation               Complete
+```
+
+## Future Improvements
+
+Potential future improvements include:
+
+- Expanding the source corpus.
+- Adding more official AMC, SEBI, and AMFI sources.
+- Introducing hybrid BM25 + vector retrieval.
+- Improving citation handling.
+- Adding more automated evaluation cases.
+- Adding source freshness tracking.
