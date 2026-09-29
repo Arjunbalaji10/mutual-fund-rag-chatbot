@@ -7,9 +7,7 @@ from groq import Groq
 from guardrails import check_guardrail
 from retriever import BM25Retriever
 
-
 load_dotenv()
-
 
 CHUNKS_FILE = "data/chunks/chunks.txt"
 TOP_K = 10
@@ -66,7 +64,6 @@ def load_chunks():
         text = file.read()
 
     raw_chunks = text.split("--- Chunk ")
-
     chunks = []
 
     for raw_chunk in raw_chunks:
@@ -123,11 +120,7 @@ def identify_source(question):
 
 
 def clean_answer(answer):
-    answer = re.sub(
-        r"\[[0-9]+\]",
-        "",
-        answer,
-    )
+    answer = re.sub(r"\[[0-9]+\]", "", answer)
 
     answer = re.sub(
         r"(?im)^source:\s*https?://\S+\s*$",
@@ -144,20 +137,18 @@ def clean_answer(answer):
     return answer.strip()
 
 
-def ask_groq(
-    question,
-    retrieved_chunks,
-    groq_client,
-):
+def ask_groq(question, retrieved_chunks, groq_client):
     context = "\n\n".join(
         retrieved_chunks
     )
-print("\n--- RAG DEBUG ---")
-print(f"Question: {question}")
-print(f"Retrieved chunks: {len(retrieved_chunks)}")
-print(f"Contains 1.03%: {'1.03%' in context}")
-print(context[:1500])
-print("--- END RAG DEBUG ---")
+
+    # Temporary production diagnostic
+    print("\n--- RAG DEBUG ---")
+    print(f"Question: {question}")
+    print(f"Retrieved chunks: {len(retrieved_chunks)}")
+    print(f"Contains 1.03%: {'1.03%' in context}")
+    print(context[:1500])
+    print("--- END RAG DEBUG ---")
 
     user_prompt = f"""
 Retrieved knowledge-base chunks:
@@ -207,7 +198,9 @@ def load_resources():
 
     print("Connecting to Groq...")
 
-    groq_client = Groq(api_key=api_key)
+    groq_client = Groq(
+        api_key=api_key
+    )
 
     return chunks, retriever, groq_client
 
@@ -258,24 +251,19 @@ def answer_question(
 
 
 def main():
-    print(
-        "Starting Mutual Fund RAG chatbot..."
-    )
+    print("Starting Mutual Fund RAG chatbot...")
 
     chunks, retriever, groq_client = load_resources()
 
     print(
-        f"Knowledge base contains "
-        f"{len(chunks)} chunks."
+        f"Knowledge base contains {len(chunks)} chunks."
     )
 
     print("\nRAG chatbot is ready.")
     print("Type 'exit' to stop.\n")
 
     while True:
-        question = input(
-            "You: "
-        ).strip()
+        question = input("You: ").strip()
 
         if question.lower() == "exit":
             print("Goodbye!")
@@ -296,13 +284,10 @@ def main():
 
         if result["source_url"]:
             print(
-                f"\nSource: "
-                f"{result['source_url']}"
+                f"\nSource: {result['source_url']}"
             )
 
-        print(
-            "\n" + "=" * 60
-        )
+        print("\n" + "=" * 60)
 
 
 if __name__ == "__main__":
