@@ -15,7 +15,7 @@ def load_rag_resources():
     return load_resources()
 
 
-model, collection, groq_client = load_rag_resources()
+chunks, retriever, groq_client = load_rag_resources()
 
 
 st.title("📊 Mutual Fund FAQ Assistant")
@@ -68,8 +68,8 @@ if question:
     # Get RAG answer
     result = answer_question(
         question,
-        model,
-        collection,
+        chunks,
+        retriever,
         groq_client,
     )
 
