@@ -1,20 +1,17 @@
 import os
 import re
 
-import chromadb
 from dotenv import load_dotenv
 from groq import Groq
-from sentence_transformers import SentenceTransformer
 
 from guardrails import check_guardrail
+from retriever import BM25Retriever
 
 
 load_dotenv()
 
 
-CHROMA_PATH = "chroma_db"
-COLLECTION_NAME = "mutual_fund_faq"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+CHUNKS_FILE = "data/chunks/chunks.txt"
 TOP_K = 10
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
 
@@ -34,8 +31,7 @@ Rules:
 4. Do not invent facts.
 5. Keep the answer to a maximum of 3 sentences.
 6. Do not add citation markers such as [106] or [104].
-7. Do not add a Source or Last updated line. The application will add
-   those automatically.
+7. Do not add a Source or Last updated line.
 8. Answer only factual questions about the mutual funds covered
    by the knowledge base.
 """
@@ -65,28 +61,31 @@ SOURCE_URLS = {
 }
 
 
-def load_resources():
-    api_key = os.getenv("GROQ_API_KEY")
+def load_chunks():
+    with open(CHUNKS_FILE, "r", encoding="utf-8") as file:
+        text = file.read()
 
-    if not api_key:
-        raise ValueError(
-            "GROQ_API_KEY was not found. Check your .env file."
-        )
+    raw_chunks = text.split("--- Chunk ")
 
-    print("Loading embedding model...")
-    model = SentenceTransformer(EMBEDDING_MODEL)
+    chunks = []
 
-    print("Opening ChromaDB...")
-    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
+    for raw_chunk in raw_chunks:
+        raw_chunk = raw_chunk.strip()
 
-    collection = chroma_client.get_collection(
-        name=COLLECTION_NAME
-    )
+        if not raw_chunk:
+            continue
 
-    print("Connecting to Groq...")
-    groq_client = Groq(api_key=api_key)
+        chunks.append("--- Chunk " + raw_chunk)
 
-    return model, collection, groq_client
+    return chunks
+
+
+def extract_source(chunk):
+    for line in chunk.splitlines():
+        if line.startswith("Source:"):
+            return line.replace("Source:", "").strip()
+
+    return "unknown"
 
 
 def identify_source(question):
@@ -123,54 +122,19 @@ def identify_source(question):
     return None
 
 
-def retrieve_chunks(question, model, collection):
-    question_embedding = model.encode(
-        [question]
-    )[0].tolist()
-
-    source = identify_source(question)
-
-    query_arguments = {
-        "query_embeddings": [question_embedding],
-        "n_results": TOP_K,
-        "include": [
-            "documents",
-            "distances",
-            "metadatas",
-        ],
-    }
-
-    if source:
-        query_arguments["where"] = {
-            "source": source
-        }
-
-    results = collection.query(
-        **query_arguments
-    )
-
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
-
-    return documents, metadatas
-
-
 def clean_answer(answer):
-    # Remove citation-style artifacts.
     answer = re.sub(
         r"\[[0-9]+\]",
         "",
         answer,
     )
 
-    # Remove accidental Source lines.
     answer = re.sub(
         r"(?im)^source:\s*https?://\S+\s*$",
         "",
         answer,
     )
 
-    # Remove accidental Last updated lines.
     answer = re.sub(
         r"(?im)^last updated from sources:.*$",
         "",
@@ -219,15 +183,36 @@ User question:
     return clean_answer(answer)
 
 
+def load_resources():
+    api_key = os.getenv("GROQ_API_KEY")
+
+    if not api_key:
+        raise ValueError(
+            "GROQ_API_KEY was not found. Check your .env file."
+        )
+
+    print("Loading knowledge base...")
+
+    chunks = load_chunks()
+
+    print(f"Loaded {len(chunks)} chunks.")
+
+    retriever = BM25Retriever(chunks)
+
+    print("Connecting to Groq...")
+
+    groq_client = Groq(api_key=api_key)
+
+    return chunks, retriever, groq_client
+
+
 def answer_question(
     question,
-    model,
-    collection,
+    chunks,
+    retriever,
     groq_client,
 ):
-    guardrail_result = check_guardrail(
-        question
-    )
+    guardrail_result = check_guardrail(question)
 
     if not guardrail_result["allowed"]:
         return {
@@ -235,11 +220,15 @@ def answer_question(
             "source_url": None,
         }
 
-    retrieved_chunks, metadatas = retrieve_chunks(
+    results = retriever.retrieve(
         question,
-        model,
-        collection,
+        top_k=TOP_K,
     )
+
+    retrieved_chunks = [
+        result["document"]
+        for result in results
+    ]
 
     answer = ask_groq(
         question,
@@ -247,11 +236,14 @@ def answer_question(
         groq_client,
     )
 
-    source_url = None
+    source = identify_source(question)
 
-    if metadatas:
-        source = metadatas[0].get("source")
-        source_url = SOURCE_URLS.get(source)
+    if not source and results:
+        source = extract_source(
+            results[0]["document"]
+        )
+
+    source_url = SOURCE_URLS.get(source)
 
     return {
         "answer": answer,
@@ -264,11 +256,11 @@ def main():
         "Starting Mutual Fund RAG chatbot..."
     )
 
-    model, collection, groq_client = load_resources()
+    chunks, retriever, groq_client = load_resources()
 
     print(
-        f"ChromaDB contains "
-        f"{collection.count()} documents."
+        f"Knowledge base contains "
+        f"{len(chunks)} chunks."
     )
 
     print("\nRAG chatbot is ready.")
@@ -288,8 +280,8 @@ def main():
 
         result = answer_question(
             question,
-            model,
-            collection,
+            chunks,
+            retriever,
             groq_client,
         )
 

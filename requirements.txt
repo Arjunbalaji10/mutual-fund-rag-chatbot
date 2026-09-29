@@ -1,7 +1,6 @@
-sentence-transformers
-chromadb
 groq
 python-dotenv
 streamlit
 requests
 beautifulsoup4
+rank-bm25
