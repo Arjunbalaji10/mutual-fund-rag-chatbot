@@ -33,12 +33,36 @@ Rules:
    "I don't know based on the available sources."
 4. Do not invent facts.
 5. Keep the answer to a maximum of 3 sentences.
-6. Do not add citation markers such as 【】, [106], or [104].
+6. Do not add citation markers such as [106] or [104].
 7. Do not add a Source or Last updated line. The application will add
    those automatically.
 8. Answer only factual questions about the mutual funds covered
    by the knowledge base.
 """
+
+
+SOURCE_URLS = {
+    "hdfc_large_cap": (
+        "https://groww.in/mutual-funds/"
+        "hdfc-large-cap-fund-direct-growth"
+    ),
+    "hdfc_equity": (
+        "https://groww.in/mutual-funds/"
+        "hdfc-equity-fund-direct-growth"
+    ),
+    "hdfc_elss": (
+        "https://groww.in/mutual-funds/"
+        "hdfc-elss-tax-saver-fund-direct-plan-growth"
+    ),
+    "hdfc_small_cap": (
+        "https://groww.in/mutual-funds/"
+        "hdfc-small-cap-fund-direct-growth"
+    ),
+    "hdfc_balanced_advantage": (
+        "https://groww.in/mutual-funds/"
+        "hdfc-balanced-advantage-fund-direct-growth"
+    ),
+}
 
 
 def load_resources():
@@ -54,6 +78,7 @@ def load_resources():
 
     print("Opening ChromaDB...")
     chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
+
     collection = chroma_client.get_collection(
         name=COLLECTION_NAME
     )
@@ -99,7 +124,9 @@ def identify_source(question):
 
 
 def retrieve_chunks(question, model, collection):
-    question_embedding = model.encode([question])[0].tolist()
+    question_embedding = model.encode(
+        [question]
+    )[0].tolist()
 
     source = identify_source(question)
 
@@ -118,29 +145,23 @@ def retrieve_chunks(question, model, collection):
             "source": source
         }
 
-    results = collection.query(**query_arguments)
+    results = collection.query(
+        **query_arguments
+    )
 
     documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
 
-    return documents
-
-
-def extract_source_url(retrieved_chunks):
-    url_pattern = r"Source URL:\s*(https?://\S+)"
-
-    for chunk in retrieved_chunks:
-        match = re.search(url_pattern, chunk)
-
-        if match:
-            return match.group(1).rstrip(").,]")
-
-    return None
+    return documents, metadatas
 
 
 def clean_answer(answer):
     # Remove citation-style artifacts.
-    answer = re.sub(r"【[^】]*】", "", answer)
-    answer = re.sub(r"\[\d+\]", "", answer)
+    answer = re.sub(
+        r"\[[0-9]+\]",
+        "",
+        answer,
+    )
 
     # Remove accidental Source lines.
     answer = re.sub(
@@ -159,8 +180,14 @@ def clean_answer(answer):
     return answer.strip()
 
 
-def ask_groq(question, retrieved_chunks, groq_client):
-    context = "\n\n".join(retrieved_chunks)
+def ask_groq(
+    question,
+    retrieved_chunks,
+    groq_client,
+):
+    context = "\n\n".join(
+        retrieved_chunks
+    )
 
     user_prompt = f"""
 Retrieved knowledge-base chunks:
@@ -198,7 +225,9 @@ def answer_question(
     collection,
     groq_client,
 ):
-    guardrail_result = check_guardrail(question)
+    guardrail_result = check_guardrail(
+        question
+    )
 
     if not guardrail_result["allowed"]:
         return {
@@ -206,7 +235,7 @@ def answer_question(
             "source_url": None,
         }
 
-    retrieved_chunks = retrieve_chunks(
+    retrieved_chunks, metadatas = retrieve_chunks(
         question,
         model,
         collection,
@@ -218,9 +247,11 @@ def answer_question(
         groq_client,
     )
 
-    source_url = extract_source_url(
-        retrieved_chunks
-    )
+    source_url = None
+
+    if metadatas:
+        source = metadatas[0].get("source")
+        source_url = SOURCE_URLS.get(source)
 
     return {
         "answer": answer,
@@ -229,19 +260,24 @@ def answer_question(
 
 
 def main():
-    print("Starting Mutual Fund RAG chatbot...")
+    print(
+        "Starting Mutual Fund RAG chatbot..."
+    )
 
     model, collection, groq_client = load_resources()
 
     print(
-        f"ChromaDB contains {collection.count()} documents."
+        f"ChromaDB contains "
+        f"{collection.count()} documents."
     )
 
     print("\nRAG chatbot is ready.")
     print("Type 'exit' to stop.\n")
 
     while True:
-        question = input("You: ").strip()
+        question = input(
+            "You: "
+        ).strip()
 
         if question.lower() == "exit":
             print("Goodbye!")
@@ -262,16 +298,13 @@ def main():
 
         if result["source_url"]:
             print(
-                f"\nSource: {result['source_url']}"
+                f"\nSource: "
+                f"{result['source_url']}"
             )
 
-            print(
-                "Last updated from sources: "
-                "Source page content retrieved from "
-                "the URL above."
-            )
-
-        print("\n" + "=" * 60)
+        print(
+            "\n" + "=" * 60
+        )
 
 
 if __name__ == "__main__":

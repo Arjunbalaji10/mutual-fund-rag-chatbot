@@ -12,6 +12,15 @@ ADVICE_KEYWORDS = [
 ]
 
 
+SUPPORTED_FUNDS = [
+    "hdfc large cap",
+    "hdfc equity",
+    "hdfc elss",
+    "hdfc small cap",
+    "hdfc balanced advantage",
+]
+
+
 MUTUAL_FUND_KEYWORDS = [
     "mutual fund",
     "fund",
@@ -67,7 +76,23 @@ def check_guardrail(question):
             ),
         }
 
-    # 4. Relevant question
+    # 4. Unsupported fund
+    # If the question clearly names HDFC but not one of the
+    # supported funds, do not allow retrieval from unrelated funds.
+    if "hdfc" in question_lower:
+        if not any(
+            fund in question_lower
+            for fund in SUPPORTED_FUNDS
+        ):
+            return {
+                "allowed": False,
+                "reason": "unsupported_fund",
+                "message": (
+                    "I don't know based on the available sources."
+                ),
+            }
+
+    # 5. Relevant and supported question
     return {
         "allowed": True,
         "reason": "allowed",
@@ -77,7 +102,8 @@ def check_guardrail(question):
 
 if __name__ == "__main__":
     test_questions = [
-        "What is the expense ratio?",
+        "What is the expense ratio of HDFC Large Cap Fund?",
+        "What is the expense ratio of HDFC Flexi Cap Fund?",
         "Should I invest in HDFC Large Cap Fund?",
         "What is the weather today?",
     ]
