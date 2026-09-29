@@ -152,6 +152,12 @@ def ask_groq(
     context = "\n\n".join(
         retrieved_chunks
     )
+print("\n--- RAG DEBUG ---")
+print(f"Question: {question}")
+print(f"Retrieved chunks: {len(retrieved_chunks)}")
+print(f"Contains 1.03%: {'1.03%' in context}")
+print(context[:1500])
+print("--- END RAG DEBUG ---")
 
     user_prompt = f"""
 Retrieved knowledge-base chunks:
