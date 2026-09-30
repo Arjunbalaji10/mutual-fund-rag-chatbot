@@ -172,21 +172,79 @@ The application will open in the browser.
 
 ## Source List
 
-The chatbot currently uses five public scheme pages.
+The chatbot currently uses five public scheme pages:
 
-The complete source list is available in:
+1. **HDFC Large Cap Fund Direct Growth**  
+   https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
 
-```text
-docs/sources.md
-```
+2. **HDFC Equity Fund Direct Growth**  
+   https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth
+
+3. **HDFC ELSS Tax Saver Fund Direct Plan Growth**  
+   https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth
+
+4. **HDFC Small Cap Fund Direct Growth**  
+   https://groww.in/mutual-funds/hdfc-small-cap-fund-direct-growth
+
+5. **HDFC Balanced Advantage Fund Direct Growth**  
+   https://groww.in/mutual-funds/hdfc-balanced-advantage-fund-direct-growth
+
+A detailed source list is also available in `docs/sources.md`.
 
 ## Sample Q&A
 
-Sample factual questions, answers, and source links are available in:
+### Q1. What is the expense ratio of HDFC Large Cap Fund Direct Growth?
 
-```text
-docs/sample_qa.md
-```
+**Answer:** The expense ratio for the HDFC Large Cap Fund Direct Growth is 1.03%.
+
+**Source:**  
+https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
+
+---
+
+### Q2. What is the minimum SIP investment for HDFC Large Cap Fund Direct Growth?
+
+**Answer:** The minimum SIP investment is ₹100.
+
+**Source:**  
+https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
+
+---
+
+### Q3. What is the exit load of HDFC Large Cap Fund Direct Growth?
+
+**Answer:** An exit load of 1% applies if the units are redeemed within 1 year.
+
+**Source:**  
+https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
+
+---
+
+### Q4. What is the benchmark of HDFC Small Cap Fund Direct Growth?
+
+**Answer:** The benchmark is the BSE 250 SmallCap Total Return Index.
+
+**Source:**  
+https://groww.in/mutual-funds/hdfc-small-cap-fund-direct-growth
+
+---
+
+### Q5. What is the minimum SIP investment for HDFC Balanced Advantage Fund Direct Growth?
+
+**Answer:** The minimum SIP investment is ₹100.
+
+**Source:**  
+https://groww.in/mutual-funds/hdfc-balanced-advantage-fund-direct-growth
+
+---
+
+### Unsupported question example
+
+**Question:** What is the expense ratio of SBI Small Cap Fund?
+
+**Answer:** I don't know based on the available sources.
+
+**Source:** No source is displayed because the fund is not covered by the current knowledge base.
 
 ## Guardrails
 
@@ -202,15 +260,13 @@ The chatbot:
 
 ## Disclaimer
 
-The application displays:
+> **Facts-only. No investment advice.**
 
-> Facts-only. No investment advice.
+This chatbot provides factual information from its available knowledge base. It does not provide investment recommendations, buy/sell advice, portfolio recommendations, or predictions of future returns.
 
-The complete disclaimer is available in:
+The information provided by the chatbot should not be considered financial advice. Users should refer to the original source documents for the latest information and make their own decisions.
 
-```text
-docs/disclaimer.md
-```
+The complete disclaimer is also available in `docs/disclaimer.md`.
 
 ## Evaluation
 
@@ -256,6 +312,7 @@ The deployed application has been manually tested for:
 - Source link generation
 - Investment advice refusal
 - Unsupported fund refusal
+- No misleading source for unsupported questions
 
 ### Example
 
