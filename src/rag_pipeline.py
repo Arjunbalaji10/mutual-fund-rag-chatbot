@@ -7,7 +7,9 @@ from groq import Groq
 from guardrails import check_guardrail
 from retriever import BM25Retriever
 
+
 load_dotenv()
+
 
 CHUNKS_FILE = "data/chunks/chunks.txt"
 TOP_K = 10
@@ -227,14 +229,17 @@ def answer_question(
         groq_client,
     )
 
-    source = identify_source(question)
+    source_url = None
 
-    if not source and results:
-        source = extract_source(
-            results[0]["document"]
-        )
+    if "I don't know based on the available sources." not in answer:
+        source = identify_source(question)
 
-    source_url = SOURCE_URLS.get(source)
+        if not source and results:
+            source = extract_source(
+                results[0]["document"]
+            )
+
+        source_url = SOURCE_URLS.get(source)
 
     return {
         "answer": answer,
